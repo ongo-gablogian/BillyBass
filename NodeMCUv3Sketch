@@ -1,0 +1,88 @@
+const int analogInPin = A0;
+bool talking = false;
+bool head = false;
+bool tail = false;
+bool tailPulse = false;
+bool talkingPulse = false;
+int voiceVol = 0;
+int voiceThreshold = 500;
+unsigned long lastTailMillis = 0;
+unsigned long lastTalkingMillis = 0;
+
+
+const int talkingFW = 4;
+const int talkingBW = 0;
+const int tailFW = 16;
+const int headFW = 5;
+const int phoneUp = 12;
+const int light = 13; 
+
+void setup() {
+
+pinMode(talkingFW, OUTPUT);
+pinMode(talkingBW, OUTPUT);
+pinMode(tailFW, OUTPUT);
+pinMode(headFW, OUTPUT);
+pinMode(phoneUp, INPUT);
+pinMode(light, OUTPUT);
+
+ Serial.begin(9600);
+}
+
+void loop() {
+
+
+
+
+unsigned long currentMillis = millis();
+
+  if (currentMillis - lastTalkingMillis >= 100) {
+    lastTalkingMillis = currentMillis;
+    talkingPulse = !talkingPulse;
+  }
+
+
+int prevValue = voiceVol, voiceVol = analogRead(A0), total = 0, readings[5] = {0}, readIndex = 0;
+bool voiceHigh = false;
+unsigned long lowStartTime = 0;  // To track when the average first drops
+
+total = total - readings[readIndex] + (readings[readIndex] = voiceVol);
+readIndex = (readIndex + 1) % 5;
+int average = total / 5;
+
+if (average > 1) {
+    voiceHigh = true;
+    lowStartTime = 0;  // Reset the timer when average is above the threshold
+} else {
+    if (lowStartTime == 0) {
+        lowStartTime = millis();  // Start the timer when the average first drops below the threshold
+    } else if (millis() - lowStartTime > 200) {
+        voiceHigh = false;  // Only set voiceHigh to false if more than 200ms have passed
+    }
+}
+
+Serial.print(voiceVol); Serial.print(","); Serial.println(average);
+
+if(digitalRead(phoneUp)){
+  digitalWrite(tailFW, LOW);
+  digitalWrite(headFW, HIGH);
+  digitalWrite(light, HIGH);
+
+  if(talkingPulse && voiceHigh){
+      digitalWrite(talkingFW, HIGH);
+      digitalWrite(talkingBW, LOW);
+      }
+  if(!talkingPulse){
+      digitalWrite(talkingFW, LOW);
+      digitalWrite(talkingBW, LOW);
+      }
+  
+}else{
+  digitalWrite(talkingFW, LOW);
+  digitalWrite(talkingBW, LOW);
+  digitalWrite(tailFW, LOW);
+  digitalWrite(headFW, LOW);
+  digitalWrite(light, LOW);
+
+    }
+  }
